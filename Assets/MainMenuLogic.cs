@@ -6,9 +6,11 @@ using UnityEngine.UI;
 
 public class MainMenuLogic : MonoBehaviour
 {
-    [SerializeField] private Human humanPrefab;
-    [SerializeField] private NonHuman nonHumanPrefab;
     [SerializeField] private GameObject menuDisplay;
+    [SerializeField] private bool testing;
+
+    [SerializeField] private Button cardButton;
+    [SerializeField] private Button deckButton;
 
     private string screen;
 
@@ -19,8 +21,11 @@ public class MainMenuLogic : MonoBehaviour
         {
             StaticNetworking.initialize();
 
+            StaticData.myCards = new Dictionary<string, int>();
+            StaticData.myDecks = new List<string[]>();
+            StaticData.myDeckNames = new List<string>();
+
             SaveMechanism.loadGame();
-            SaveMechanism.importDLCCards(humanPrefab, nonHumanPrefab);
             StaticData.loaded = true;
         }
         StaticData.findDeepChild(menuDisplay.transform, "ProfileImage").GetComponent<Image>().sprite
@@ -52,13 +57,49 @@ public class MainMenuLogic : MonoBehaviour
 
     public void pickGospels()
     {
-        //TODO unlock the gospels deck
+        if (testing)
+        {
+            StaticData.myCards.Add("TEST-HUMAN", 40);
+            StaticData.myCards.Add("TEST-NONHUMAN", 40);
+            string[] testDeck = new string[StaticData.NUM_CARDS_IN_DECK];
+            for (int q = 0; q < StaticData.NUM_CARDS_IN_DECK / 2; q++)
+            {
+                testDeck[q] = "TEST-HUMAN";
+            }
+            for (int q = StaticData.NUM_CARDS_IN_DECK / 2; q < StaticData.NUM_CARDS_IN_DECK; q++)
+            {
+                testDeck[q] = "TEST-NONHUMAN";
+            }
+            StaticData.myDecks.Add(testDeck);
+        }
+        else
+        {
+            //TODO unlock the gospels deck
+        }
         StaticData.playerData.initialized = true;
         switchToScreen("PickName");
     }
     public void pickGenesis()
     {
-        //TODO unlock the Genesis deck
+        if (testing)
+        {
+            StaticData.myCards.Add("TEST-HUMAN", 40);
+            StaticData.myCards.Add("TEST-NONHUMAN", 40);
+            string[] testDeck = new string[StaticData.NUM_CARDS_IN_DECK];
+            for (int q = 0; q < StaticData.NUM_CARDS_IN_DECK / 2; q++)
+            {
+                testDeck[q] = "TEST-HUMAN";
+            }
+            for (int q = StaticData.NUM_CARDS_IN_DECK / 2; q < StaticData.NUM_CARDS_IN_DECK; q++)
+            {
+                testDeck[q] = "TEST-NONHUMAN";
+            }
+            StaticData.myDecks.Add(testDeck);
+        }
+        else
+        {
+            //TODO unlock the Genesis deck
+        }
         StaticData.playerData.initialized = true;
         switchToScreen("PickName");
     }
@@ -78,10 +119,31 @@ public class MainMenuLogic : MonoBehaviour
         }
     }
 
+    public void myCollection()
+    {
+        switchToScreen("CollectionPage");
+        Transform cardsTransform = StaticData.findDeepChild(menuDisplay.transform, "CardCollectionContent");
+        foreach (string id in StaticData.myCards.Keys)
+        {
+            Button card = Instantiate(cardButton, cardsTransform);
+            Button.ButtonClickedEvent examine = new Button.ButtonClickedEvent();
+            examine.AddListener(delegate { examineCard(id); });
+            card.GetComponent<Image>().sprite = CardDictionary.getCard(id).getFaceImage();
+            StaticData.findDeepChild(card.transform, "Amount").GetComponent<TextMeshProUGUI>()
+                .text = "" + StaticData.myCards[id];
+        }
+    }
+
+    public void examineCard(string id)
+    {
+
+    }
+
     public void startNewGame()
     {
         StaticNetworking.createRelay(StaticData.findDeepChild(menuDisplay.transform, "JoinCodeDisplay")
             .GetComponent<TextMeshProUGUI>());
+        switchToScreen("Lobby");
     }
     public void joinGame()
     {

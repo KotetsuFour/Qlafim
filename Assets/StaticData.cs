@@ -7,8 +7,10 @@ public static class StaticData
     public static bool loaded;
     public static PlayerData playerData;
     public static Gameboard board;
-    public static List<TradingCard> myCards;
-    public static List<int[]> myDecks;
+    public static Dictionary<string, int> myCards;
+    public static List<string[]> myDecks;
+    public static List<string> myDeckNames;
+    public static int deckInUse;
 
     public static int NUM_CARDS_IN_DECK = 40;
     public static Transform findDeepChild(Transform parent, string childName)

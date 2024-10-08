@@ -50,7 +50,7 @@ public class Gameboard : NotificationHandler
     [SerializeField] private Human human;
     [SerializeField] private NonHuman nonHuman;
 
-    private int[] opponentShuffleOrder;
+    public static int INITIAL_NUM_CARDS_DRAWN = 4;
 
     // Start is called before the first frame update
     void Start()
@@ -75,41 +75,22 @@ public class Gameboard : NotificationHandler
             /*[5]*/yourWilderness
         };
     }
-    public CardsData getMyDeckData()
+    public void setMyDeck(int[] order)
     {
-        return new CardsData(myDeck.cardsHere);
+        for (int q = 0; q < order.Length; q++)
+        {
+            myDeck.addCard(Instantiate(CardDictionary.getCard(StaticData.myDecks[StaticData.deckInUse][order[q]])));
+        }
     }
-
-    public void setOpponentShuffleOrder(int[] order)
+    public void setOpponentDeck(string[] deckData)
     {
-        opponentShuffleOrder = order;
-    }
-    public void setDecks(CardsData opponentData, int[] myShuffleOrder)
-    {
-        List<TradingCard> myShuffledDeck = new List<TradingCard>();
-        for (int q = 0; q < myShuffleOrder.Length; q++)
+        foreach (string cardId in deckData)
         {
-            myShuffledDeck.Add(myDeck.cardsHere[myShuffleOrder[q]]);
-        }
-        myDeck.cardsHere.Clear();
-        foreach (TradingCard card in myShuffledDeck)
-        {
-            myDeck.addCard(card);
-        }
-
-        List<TradingCard> deck = opponentData.getAllCards(human, nonHuman);
-        List<TradingCard> yourShuffledDeck = new List<TradingCard>();
-        for (int q = 0; q < opponentShuffleOrder.Length; q++)
-        {
-            yourShuffledDeck.Add(deck[opponentShuffleOrder[q]]);
-        }
-        foreach (TradingCard card in yourShuffledDeck)
-        {
-            yourDeck.addCard(card);
+            yourDeck.addCard(Instantiate(CardDictionary.getCard(cardId)));
         }
     }
 
-    public void decideFirstPlayer(bool isHost)
+    public void decideFirstPlayer(bool isServer)
     {
         int[] myAttributesCount = new int[7];
         int[] myCostCounts = new int[9];
@@ -125,6 +106,7 @@ public class Gameboard : NotificationHandler
             if (card is Human)
             {
                 Human hum = (Human)card;
+                hum.initialize();
                 myCostCounts[hum.energyCost.value]++;
                 myTotalCost += hum.energyCost.value;
             }
@@ -135,6 +117,7 @@ public class Gameboard : NotificationHandler
             if (card is Human)
             {
                 Human hum = (Human)card;
+                hum.initialize();
                 yourCostCounts[hum.energyCost.value]++;
                 yourTotalCost += hum.energyCost.value;
             }
@@ -148,7 +131,7 @@ public class Gameboard : NotificationHandler
                 int attr = int.Parse(parts[2]);
                 if (myAttributesCount[attr] == yourAttributesCount[attr])
                 {
-                    myTurn = isHost;
+                    myTurn = isServer;
                 }
                 else if (myAttributesCount[attr] > yourAttributesCount[attr])
                 {
@@ -160,7 +143,7 @@ public class Gameboard : NotificationHandler
                 int cost = int.Parse(parts[2]);
                 if (myCostCounts[cost] == yourCostCounts[cost])
                 {
-                    myTurn = isHost;
+                    myTurn = isServer;
                 }
                 else if (myCostCounts[cost] > yourCostCounts[cost])
                 {
@@ -171,7 +154,7 @@ public class Gameboard : NotificationHandler
             {
                 if (myTotalCost == yourTotalCost)
                 {
-                    myTurn = isHost;
+                    myTurn = isServer;
                 }
                 else if (myTotalCost > yourTotalCost)
                 {
@@ -186,7 +169,7 @@ public class Gameboard : NotificationHandler
                 int attr = int.Parse(parts[2]);
                 if (myAttributesCount[attr] == yourAttributesCount[attr])
                 {
-                    myTurn = isHost;
+                    myTurn = isServer;
                 }
                 else if (myAttributesCount[attr] < yourAttributesCount[attr])
                 {
@@ -198,7 +181,7 @@ public class Gameboard : NotificationHandler
                 int cost = int.Parse(parts[2]);
                 if (myCostCounts[cost] == yourCostCounts[cost])
                 {
-                    myTurn = isHost;
+                    myTurn = isServer;
                 }
                 else if (myCostCounts[cost] < yourCostCounts[cost])
                 {
@@ -209,7 +192,7 @@ public class Gameboard : NotificationHandler
             {
                 if (myTotalCost == yourTotalCost)
                 {
-                    myTurn = isHost;
+                    myTurn = isServer;
                 }
                 else if (myTotalCost < yourTotalCost)
                 {
@@ -217,6 +200,27 @@ public class Gameboard : NotificationHandler
                 }
             }
         }
+
+        //Draw cards
+        for (int q = 0; q < INITIAL_NUM_CARDS_DRAWN; q++)
+        {
+            GameNotification draw = new GameNotification(GameNotification.Nature.MOVE_CARD, false, this);
+            draw.cardRegistry.Add(myDeck.cardsHere[myDeck.cardsHere.Count - (1 + q)]);
+            draw.positionStateRegistry.Add(myDeck);
+            draw.positionStateRegistry.Add(myHand);
+            addNotification(draw);
+        }
+        for (int q = 0; q < INITIAL_NUM_CARDS_DRAWN; q++)
+        {
+            GameNotification draw = new GameNotification(GameNotification.Nature.MOVE_CARD, false, this);
+            draw.cardRegistry.Add(yourDeck.cardsHere[yourDeck.cardsHere.Count - (1 + q)]);
+            draw.positionStateRegistry.Add(yourDeck);
+            draw.positionStateRegistry.Add(yourHand);
+            addNotification(draw);
+        }
+
+        //Start game (don't use a notification)
+        currentPhase = Phase.DRAW;
     }
 
     public PositionState[] getPositionStatesByCard(TradingCard card, bool mine)
@@ -251,23 +255,24 @@ public class Gameboard : NotificationHandler
     {
         if (notificationQueue.Count > 0)
         {
-            if (notificationQueue.First.Value.isDone())
+            GameNotification currentNote = notificationQueue.First.Value;
+            if (currentNote.isDone())
             {
-                if (!notificationQueue.First.Value.wasDenied())
+                if (!currentNote.wasDenied())
                 {
                     addAfter = notificationQueue.First;
                     if (notificationQueue.First.Value.nature == GameNotification.Nature.ACTIVATE_ABILITY)
                     {
-                        notificationQueue.First.Value.cardRegistry[0].react(notificationQueue.First.Value);
+                        currentNote.cardRegistry[0].react(currentNote);
                     }
                     else
                     {
                         List<TradingCard> allCards = getAllCardsInGame();
                         foreach (TradingCard card in allCards)
                         {
-                            card.react(notificationQueue.First.Value);
+                            card.react(currentNote);
                         }
-                        react(notificationQueue.First.Value);
+                        react(currentNote);
                     }
                 }
                 notificationQueue.RemoveFirst();
@@ -592,11 +597,11 @@ public class Gameboard : NotificationHandler
         cancel.AddListener(hideSelectionOptions);
         next.onClick = cancel;
     }
-    public new void allowNotification(GameNotification note)
+    public override void allowNotification(GameNotification note)
     {
         //nothing
     }
-    public new void react(GameNotification note)
+    public override void react(GameNotification note)
     {
         if (note.nature == GameNotification.Nature.GAME_STATE
             && currentPhase == Phase.DRAW)
@@ -724,6 +729,22 @@ public class Gameboard : NotificationHandler
             yourLifePoints += amount;
         }
     }
+    public void acceptOpponentAction(int actionType, int position, int attackerIdx, int defenderIdx)
+    {
+        GameNotification note = new GameNotification(GameNotification.Nature.PLAYER_ACTION, false, this);
+        note.integerRegistry.Add(new IntegerRegister(actionType));
+        if (actionType == 0 || actionType == 1)
+        {
+            note.integerRegistry.Add(new IntegerRegister(position));
+        }
+        else if (actionType == 2)
+        {
+            note.cardRegistry.Add(yourHumans.cardsHere[attackerIdx]);
+            note.cardRegistry.Add(yourHumans.cardsHere[defenderIdx]);
+        }
+        addNotification(note);
+    }
+
     public enum Phase
     {
         DRAW, MAIN1, BATTLE, MAIN2

@@ -11,18 +11,24 @@ public class Human : TradingCard
     public IntegerRegister energyCost;
     public IntegerRegister atk;
     public IntegerRegister def;
+    private bool setup;
     // Start is called before the first frame update
     void Start()
     {
-        if (setup)
+        if (!setup)
         {
-            atk = new IntegerRegister(setATK);
-            def = new IntegerRegister(setDEF);
-            energyCost = new IntegerRegister(setNRG);
+            initialize();
         }
+    }
+    public void initialize()
+    {
+        atk = new IntegerRegister(setATK);
+        def = new IntegerRegister(setDEF);
+        energyCost = new IntegerRegister(setNRG);
         atk.setMinValue(0);
         def.setMinValue(0);
         energyCost.setMinValue(1);
+        setup = true;
     }
 
     // Update is called once per frame

@@ -13,7 +13,7 @@ public abstract class NotificationHandler : MonoBehaviour
 
     public int codeIdx;
 
-    public void allowNotification(GameNotification note)
+    public virtual void allowNotification(GameNotification note)
     {
         try
         {
@@ -27,7 +27,7 @@ public abstract class NotificationHandler : MonoBehaviour
             Debug.Log($"Error at line {codeIdx}: {ex.Message}");
         }
     }
-    public void react(GameNotification note)
+    public virtual void react(GameNotification note)
     {
         try
         {

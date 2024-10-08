@@ -17,9 +17,6 @@ public abstract class TradingCard : NotificationHandler
     public PositionState positionState;
 
     [SerializeField] private Sprite faceImage;
-
-    public bool setup;
-    public int version;
     public Sprite getFaceImage()
     {
         return faceImage;

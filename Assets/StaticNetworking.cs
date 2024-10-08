@@ -74,7 +74,7 @@ public static class StaticNetworking
 
     public static void switchScenesWhenReady()
     {
-        if (waiting && NetworkManager.Singleton.ConnectedClientsList.Count == 1)
+        if (waiting && NetworkManager.Singleton.ConnectedClientsList.Count == 2)
         {
             NetworkManager.Singleton.SceneManager.LoadScene("Boardgame",
                 UnityEngine.SceneManagement.LoadSceneMode.Single);

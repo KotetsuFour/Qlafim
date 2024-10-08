@@ -17,6 +17,8 @@ public class GameNotification
     private Stage currentStage;
     private bool denied;
 
+    public static int NOTIFICATION_TYPES = 15;
+
 
     public GameNotification(Nature nature, bool disputable, NotificationHandler cause)
     {
@@ -28,6 +30,7 @@ public class GameNotification
         integerRegistry = new List<IntegerRegister>();
         cardRegistry = new List<TradingCard>();
         positionStateRegistry = new List<PositionState>();
+        permissionsQueue = new List<PermissionDenial>();
     }
 
     public void deny(NotificationHandler handler)
@@ -112,6 +115,8 @@ public class GameNotification
                     {
                         StaticData.board.myPositionStates[3].addCard(cardRegistry[0]);
                     }
+                    GameObject.Find("NetworkLogic").GetComponent<NetworkLogic>()
+                        .setAction(integerRegistry[0].value, integerRegistry[1].value, 0, 0);
                 }
                 else
                 {
@@ -135,6 +140,9 @@ public class GameNotification
                 || cardRegistry[0].positionState == StaticData.board.yourPositionStates[3]))
             {
                 positionCard(cardRegistry[0], integerRegistry[1].value);
+
+                GameObject.Find("NetworkLogic").GetComponent<NetworkLogic>()
+                    .setAction(integerRegistry[0].value, integerRegistry[1].value, 0, 0);
             }
             else if (integerRegistry[0].value == 2)
             {
@@ -225,6 +233,13 @@ public class GameNotification
                         StaticData.board.addNotification(damage);
                     }
                 }
+                if (StaticData.board.isMyTurn())
+                {
+                    GameObject.Find("NetworkLogic").GetComponent<NetworkLogic>()
+                        .setAction(integerRegistry[0].value, 0, 
+                        StaticData.board.myPositionStates[2].cardsHere.IndexOf(cardRegistry[0]),
+                        StaticData.board.yourPositionStates[2].cardsHere.IndexOf(cardRegistry[1]));
+                }
             }
         }
         else if (nature == Nature.PERM_ALTER_ATK)
@@ -264,7 +279,9 @@ public class GameNotification
                 positionStateRegistry[0].remove(cardRegistry[0]);
                 positionStateRegistry[1].addCard(cardRegistry[0]);
                 cardRegistry[0].position = 0;
+                Debug.Log("Move card resolved");
             }
+            Debug.Log("Move card tried to resolve");
         }
         else if (nature == Nature.ACTIVATE_ABILITY)
         {
@@ -328,6 +345,7 @@ public class GameNotification
     }
     private void resolve()
     {
+        //TODO if NOT disputable, just set to ACTING
         List<TradingCard> actors = StaticData.board.getAllCardsInGame();
         for (int q = 0; q < actors.Count; q++)
         {
